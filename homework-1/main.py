@@ -1,6 +1,8 @@
 """Скрипт для заполнения данными таблиц в БД Postgres."""
+import os
 import csv
 import psycopg2
+from dotenv import load_dotenv, find_dotenv
 
 list_path_file = [
     'north_data/employees_data.csv',
@@ -9,6 +11,8 @@ list_path_file = [
 ]
 table_name = ['employees', 'customers', 'orders']
 table_columns = [6, 3, 5]
+load_dotenv(find_dotenv())
+pg_pass = os.environ.get('PGPASS')
 
 
 def get_arguments(quantity: int) -> str:
@@ -32,31 +36,33 @@ def get_cdv_reader(path_file: str) -> tuple:
     return result_list
 
 
-def writing_data_in_table(data: list, table: str, arguments: str) -> None:
+def writing_data_in_table(data: tuple, table: str, arguments: str) -> None:
     """
-    Принимает на вход лист с данными с .csv файла, имя таблицы из БД и строку
+    Принимает на вход кортеж с данными с .csv файла, имя таблицы из БД и строку
     аргументов "%s, %s..." по нужному количеству. Записывает данные в таблицу
     """
     conn = psycopg2.connect(
         host='localhost',
         database='north',
         user='postgres',
-        password='01081976'
+        password=pg_pass
     )
     try:
         with conn:
             with conn.cursor() as cur:
                 for i in data:
                     cur.execute(f'INSERT INTO {table} VALUES ({arguments})', i)
+    except Exception as ex:
+        print(ex)
     finally:
         conn.close()
 
 
 def main():
     for i in range(3):
-        arguments = get_arguments(table_columns[i])
         data = get_cdv_reader(list_path_file[i])
         table = table_name[i]
+        arguments = get_arguments(table_columns[i])
         writing_data_in_table(data, table, arguments)
 
 
